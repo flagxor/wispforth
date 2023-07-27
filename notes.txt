@@ -1,0 +1,21 @@
+MACROS + SPECIAL
+----------------
+branch
+0branch
+call
+n
+
+MACROS + CODE
+-------------
+exit
+@ !
+and xor or
+push pop
+dup over swap drop nip
+2* 2/ + - */
+
+
+ORDER:
+  MACROS FOR TARGET
+    core
+    for next if then
