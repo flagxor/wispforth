@@ -33,6 +33,9 @@ variable fh
 : + ( n n -- n ) rex.W $03 c, $5d c, $00 c, ( add 0x0[%rbp],%rbx ) nip ;
 : - ( n n -- n ) rex.W $2b c, $5d c, $00 c, ( sub 0x0[%rbp],%rbx ) nip ;
 : * ( n n -- n ) rex.W $0f c, $af c, $5d c, $00 c, ( imul 0x0[%rbp],%rbx ) nip ;
+: and ( n n -- n ) rex.W $23 c, $5d c, $00 c, ( and 0x0[%rbp],%rbx ) nip ;
+: or ( n n -- n ) rex.W $0b c, $5d c, $00 c, ( or 0x0[%rbp],%rbx ) nip ;
+: xor ( n n -- n ) rex.W $33 c, $5d c, $00 c, ( xor 0x0[%rbp],%rbx ) nip ;
 
 start-image
 
