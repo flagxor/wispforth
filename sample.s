@@ -1,2 +1,4 @@
 .org 0x400000
-mov    $0x2a,%edi
+mov $0x2a,%edi
+mov $0x199923456781,%rdi
+imul 0x0(%rbp),%rbx
