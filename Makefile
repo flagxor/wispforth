@@ -14,5 +14,9 @@ dump: out/wisp
     -D out/wisp
 	ls -lh out/wisp
 
+trial:
+	as sample.s -o out/sample.o
+	objdump -d out/sample.o
+
 clean:
 	rm -rf out/
