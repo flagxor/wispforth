@@ -20,6 +20,8 @@ variable fh
 : rex.W   $48 c, ;
 : ++rbp   rex.W $83 c, $c5 c, $08 c, ( add $0x8,%rbp ) ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
+: drop0   $31 c, $db c, ( xor %ebx,%ebx ) ;
+: cmp0   rex.W $83 c, $fb c, $00 c, ( cmp $0x0,%rbx ) ;
 
 : 1+ ( n -- n ) rex.W $ff c, $c3 c, ( inc %rbx ) ;
 : 1- ( n -- n ) rex.W $ff c, $cb c, ( dec %rbx ) ;
@@ -36,6 +38,10 @@ variable fh
 : and ( n n -- n ) rex.W $23 c, $5d c, $00 c, ( and 0x0[%rbp],%rbx ) nip ;
 : or ( n n -- n ) rex.W $0b c, $5d c, $00 c, ( or 0x0[%rbp],%rbx ) nip ;
 : xor ( n n -- n ) rex.W $33 c, $5d c, $00 c, ( xor 0x0[%rbp],%rbx ) nip ;
+: invert ( n -- n ) rex.W $f7 c, $d3 c, ( not %rbx ) ;
+: negate ( n -- n ) rex.W $f7 c, $db c, ( neg %rbx ) ;
+: 0= ( n -- n ) cmp0 drop0 $0f c, $9c c, $c3 c, ( setl %bl ) negate ;
+: 0< ( n -- n ) cmp0 drop0 $0f c, $94 c, $c3 c, ( sete %bl ) negate ;
 
 start-image
 
@@ -77,7 +83,7 @@ $100000 ,8 ( p_memsz )
 ( 401005: ) $bf c, $2a c, $00 c, $00 c, $00 c, ( mov    $0x2a,%edi )
 ( 40100a: ) $0f c, $05 c,                      ( syscall )
 
-dup *
+invert negate 0= 0<
 
 end-image
 bye
