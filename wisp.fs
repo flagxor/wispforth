@@ -20,6 +20,7 @@ variable fh
 : rex.W   $48 c, ;
 : ++rbp   rex.W $83 c, $c5 c, $08 c, ( add $0x8,%rbp ) ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
+: rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%esp ) ;
 : drop0   $31 c, $db c, ( xor %ebx,%ebx ) ;
 : cmp0   rex.W $83 c, $fb c, $00 c, ( cmp $0x0,%rbx ) ;
 : past>tos   rex.W $8b c, $5d c, $08 c, ( mov 0x8[%rbp],%rbx ) ;
@@ -51,10 +52,27 @@ variable fh
 : negate ( n -- n ) rex.W $f7 c, $db c, ( neg %rbx ) ;
 : 0= ( n -- n ) cmp0 drop0 $0f c, $9c c, $c3 c, ( setl %bl ) negate ;
 : 0< ( n -- n ) cmp0 drop0 $0f c, $94 c, $c3 c, ( sete %bl ) negate ;
+: exit    $c3 c, ;
+: nop    $90 c, ;
 
 : aliteral32u ( n -- ) dup $bb c, ,4 ( mov $n32,%ebx ) ;
 : aliteral32s ( n -- ) dup rex.W $c7 c, $c3 c, ,4 ( mov $n32, %rbx ) ;
 : aliteral64 ( n -- ) dup rex.W $bb c, ,8 ( movabs $n64,%rbx ) ;
+
+: syscall ( n n n n n n - n )
+   rex.W $89 c, $d8 c, ( mov %rbx,%rax )
+   $4c c, $8b c, $4d c, $00 c, ( mov 0x0[%rbp],%r9 )
+   $4c c, $8b c, $45 c, $F8 c, ( mov -0x8[%rbp],%r8 )
+   $4c c, $8b c, $55 c, $F0 c, ( mov -0x10[%rbp],%r10 )
+   rex.W $8b c, $55 c, $E8 c, ( mov -0x18[%rbp],%rdx )
+   rex.W $8b c, $75 c, $E0 c, ( mov -0x20[%rbp],%rsi )
+   rex.W $8b c, $7d c, $D8 c, ( mov -0x28[%rbp],%rdi )
+   rex.W $83 c, $ed c, $30 c, ( sub $0x30,%rbp )
+   $0f c, 05 c, ( syscall )
+   rex.W $89 c, $c3 c, ( mov %rax,%rbx )
+;
+
+: init    rex.W $89 c, $e5 c, ( mov %esp,%ebp ) $1000 rsp+! ;
 
 start-image
 
@@ -92,14 +110,9 @@ $100000 ,8 ( p_memsz )
 0 ,8 ( p_align )
 
 ( START ) 
-( 401000: ) $b8 c, $3c c, $00 c, $00 c, $00 c, ( mov    $0x3c,%eax )
-( 401005: ) $bf c, $2a c, $00 c, $00 c, $00 c, ( mov    $0x2a,%edi )
-( 40100a: ) $0f c, $05 c,                      ( syscall )
-
-begin invert negate 0= 0< again
-ahead negate then
-begin negate until
-if negate then
+init
+1 aliteral32u $400000 aliteral32u 100 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 1 aliteral32u syscall
+42 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 60 aliteral32u syscall
 
 end-image
 bye
