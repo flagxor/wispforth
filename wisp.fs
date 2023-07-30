@@ -26,6 +26,20 @@ variable fh
 : past>tos   rex.W $8b c, $5d c, $08 c, ( mov 0x8[%rbp],%rbx ) ;
 
 : nip ( a b -- b ) rex.W $83 c, $ed c, $08 c, ( sub $0x8,%rbp ) ;
+: dup' ( n -- n n ) ++rbp rex.W $89 c, $5d c, $00 c, ( mov %rbx,0x0[%rbp] ) ;
+
+: aliteral32u ( n -- ) dup' $bb c, ,4 ( mov $n32,%ebx ) ;
+: aliteral32s ( n -- ) dup' rex.W $c7 c, $c3 c, ,4 ( mov $n32, %rbx ) ;
+: aliteral64 ( n -- ) dup' rex.W $bb c, ,8 ( movabs $n64,%rbx ) ;
+: aliteral ( n -- ) dup dup $ffffffff and = if
+                      aliteral32u
+                    else
+                      dup negate $80000000 < if
+                        aliteral32s
+                      else
+                        aliteral64
+                      then
+                    then ;
 
 : begin   here ;
 : again   $eb c, here 1+ - c, ;
@@ -38,7 +52,7 @@ variable fh
 : 1- ( n -- n ) rex.W $ff c, $cb c, ( dec %rbx ) ;
 : rdrop ( a b -- b ) rex.W $83 c, $ec c, $08 c, ( sub $0x8,%rsp ) ;
 : drop ( n -- ) rex.W $8b c, $5d c, $00 c, ( mov 0x0[%rbp],%rbx ) nip ;
-: dup ( n -- n n ) ++rbp rex.W $89 c, $5d c, $00 c, ( mov %rbx,0x0[%rbp] ) ;
+: dup ( n -- n n ) dup' ;
 : over ( n -- n n ) ++rbp rex.W $89 c, $5d c, $f8 c, ( mov %rbx,-0x8[%rbp] ) ;
 : push ( n -- r: n ) ++rsp rex.W $89 c, $1c c, $24 c, ( mov %rbx,[%rsp] ) drop ;
 : pop ( r: n -- n ) dup rex.W $8b c, $1c c, $24 c, ( mov [%rsp],%rbx ) rdrop ;
@@ -55,9 +69,12 @@ variable fh
 : exit    $c3 c, ;
 : nop    $90 c, ;
 
-: aliteral32u ( n -- ) dup $bb c, ,4 ( mov $n32,%ebx ) ;
-: aliteral32s ( n -- ) dup rex.W $c7 c, $c3 c, ,4 ( mov $n32, %rbx ) ;
-: aliteral64 ( n -- ) dup rex.W $bb c, ,8 ( movabs $n64,%rbx ) ;
+: @ ( a -- n ) rex.W $8b c, $1b c, ( mov [%rbx],%rbx ) ;
+: ! ( n a -- ) rex.W $8b c, $4d c, $00 c, ( mov 0x0[%rbp],%rcx )
+               rex.W $89 c, $0b c, ( mov %rcx,[%rbx] ) nip drop ;
+: c@ ( a -- ch ) rex.W $0f c, $b6 c, $1b c, ( movzbq [%rbx],%rbx )
+: c! ( ch a -- ) $8a c, $4d c, $00 c, ( mov 0x0[%rbp],%cl )
+                 $88 c, $0b c, ( mov %cl,[%rbx] ) ;
 
 : syscall ( n n n n n n - n )
    rex.W $89 c, $d8 c, ( mov %rbx,%rax )
@@ -109,10 +126,10 @@ $100000 ,8 ( p_filesz )
 $100000 ,8 ( p_memsz )
 0 ,8 ( p_align )
 
-( START ) 
+( START )
 init
-1 aliteral32u $400000 aliteral32u 100 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 1 aliteral32u syscall
-42 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 0 aliteral32u 60 aliteral32u syscall
+1 aliteral $400000 aliteral 100 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall
+42 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 60 aliteral syscall
 
 end-image
 bye
