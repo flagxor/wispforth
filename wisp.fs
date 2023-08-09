@@ -18,15 +18,25 @@ variable fh
 : o+ ( n n -- n ) + ;
 
 : rex.W   $48 c, ;
-: ++rbp   rex.W $83 c, $c5 c, $08 c, ( add $0x8,%rbp ) ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
+variable offset
+: rbp+= ( n -- ) dup negate offset +!
+                 rex.W $83 c, $c5 c, c, ( add $n,%rbp ) ;
+: rbp-= ( n -- ) dup offset +!
+                 rex.W $83 c, $ed c, c, ( sub $n,%rbp ) ;
+: offset@ ( -- n ) offset @ ;
+: offset@- ( -- n ) offset @ 8 - ;
+: balance   offset@ 0< if offset@ negate rbp-= then
+            offset@ 0> if offset@ rbp+= then ;
+: ++rbp   8 offset +! offset@ 120 >= if balance then ;
+: --rbp   -8 offset +! offset@ -120 <= if balance then ;
 : rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%esp ) ;
 : drop0   $31 c, $db c, ( xor %ebx,%ebx ) ;
 : cmp0   rex.W $83 c, $fb c, $00 c, ( cmp $0x0,%rbx ) ;
 : past>tos   rex.W $8b c, $5d c, $08 c, ( mov 0x8[%rbp],%rbx ) ;
 
-: nip ( a b -- b ) rex.W $83 c, $ed c, $08 c, ( sub $0x8,%rbp ) ;
-: dup' ( n -- n n ) ++rbp rex.W $89 c, $5d c, $00 c, ( mov %rbx,0x0[%rbp] ) ;
+: nip ( a b -- b ) --rbp ;
+: dup' ( n -- n n ) ++rbp rex.W $89 c, $5d c, offset@ c, ( mov %rbx,o+0x0[%rbp] ) ;
 
 : aliteral32u ( n -- ) dup' $bb c, ,4 ( mov $n32,%ebx ) ;
 : aliteral32s ( n -- ) dup' rex.W $c7 c, $c3 c, ,4 ( mov $n32, %rbx ) ;
@@ -41,42 +51,43 @@ variable fh
                       then
                     then ;
 
-: begin   here ;
-: again   $eb c, here 1+ - c, ;
-: ahead   $eb c, here 0 c, ;
-: then   here over 1+ - swap c! ;
-: until ( n -- ) nip cmp0 past>tos $74 c, here 1+ - c, ;
-: if ( n -- ) nip cmp0 past>tos $74 c, here 0 c, ;
+: begin   balance here ;
+: again   balance $eb c, here 1+ - c, ;
+: ahead   balance $eb c, here 0 c, ;
+: then   balance here over 1+ - swap c! ;
+: until ( n -- ) nip balance cmp0 past>tos $74 c, here 1+ - c, ;
+: if ( n -- ) nip balance cmp0 past>tos $74 c, here 0 c, ;
 
 : 1+ ( n -- n ) rex.W $ff c, $c3 c, ( inc %rbx ) ;
 : 1- ( n -- n ) rex.W $ff c, $cb c, ( dec %rbx ) ;
 : rdrop ( a b -- b ) rex.W $83 c, $ec c, $08 c, ( sub $0x8,%rsp ) ;
-: drop ( n -- ) rex.W $8b c, $5d c, $00 c, ( mov 0x0[%rbp],%rbx ) nip ;
+: drop ( n -- ) rex.W $8b c, $5d c, offset@ c, ( mov o+0x0[%rbp],%rbx ) nip ;
 : dup ( n -- n n ) dup' ;
-: over ( n -- n n ) ++rbp rex.W $89 c, $5d c, $f8 c, ( mov %rbx,-0x8[%rbp] ) ;
+: over ( n -- n n ) ++rbp rex.W $89 c, $5d c, offset@- c, ( mov %rbx,-0x8[%rbp] ) ;
 : push ( n -- r: n ) ++rsp rex.W $89 c, $1c c, $24 c, ( mov %rbx,[%rsp] ) drop ;
 : pop ( r: n -- n ) dup rex.W $8b c, $1c c, $24 c, ( mov [%rsp],%rbx ) rdrop ;
-: + ( n n -- n ) rex.W $03 c, $5d c, $00 c, ( add 0x0[%rbp],%rbx ) nip ;
-: - ( n n -- n ) rex.W $2b c, $5d c, $00 c, ( sub 0x0[%rbp],%rbx ) nip ;
-: * ( n n -- n ) rex.W $0f c, $af c, $5d c, $00 c, ( imul 0x0[%rbp],%rbx ) nip ;
-: and ( n n -- n ) rex.W $23 c, $5d c, $00 c, ( and 0x0[%rbp],%rbx ) nip ;
-: or ( n n -- n ) rex.W $0b c, $5d c, $00 c, ( or 0x0[%rbp],%rbx ) nip ;
-: xor ( n n -- n ) rex.W $33 c, $5d c, $00 c, ( xor 0x0[%rbp],%rbx ) nip ;
+: + ( n n -- n ) rex.W $03 c, $5d c, offset@ c, ( add o+0x0[%rbp],%rbx ) nip ;
+: - ( n n -- n ) rex.W $2b c, $5d c, offset@ c, ( sub o+0x0[%rbp],%rbx ) nip ;
+: * ( n n -- n ) rex.W $0f c, $af c, $5d c, offset@ c, ( imul o+0x0[%rbp],%rbx ) nip ;
+: and ( n n -- n ) rex.W $23 c, $5d c, offset@ c, ( and o+0x0[%rbp],%rbx ) nip ;
+: or ( n n -- n ) rex.W $0b c, $5d c, offset@ c, ( or o+0x0[%rbp],%rbx ) nip ;
+: xor ( n n -- n ) rex.W $33 c, $5d c, offset@ c, ( xor o+0x0[%rbp],%rbx ) nip ;
 : invert ( n -- n ) rex.W $f7 c, $d3 c, ( not %rbx ) ;
 : negate ( n -- n ) rex.W $f7 c, $db c, ( neg %rbx ) ;
 : 0= ( n -- n ) cmp0 drop0 $0f c, $9c c, $c3 c, ( setl %bl ) negate ;
 : 0< ( n -- n ) cmp0 drop0 $0f c, $94 c, $c3 c, ( sete %bl ) negate ;
-: exit    $c3 c, ;
+: exit    balance $c3 c, ;
 : nop    $90 c, ;
 
 : @ ( a -- n ) rex.W $8b c, $1b c, ( mov [%rbx],%rbx ) ;
-: ! ( n a -- ) rex.W $8b c, $4d c, $00 c, ( mov 0x0[%rbp],%rcx )
+: ! ( n a -- ) rex.W $8b c, $4d c, offset@ c, ( mov o+0x0[%rbp],%rcx )
                rex.W $89 c, $0b c, ( mov %rcx,[%rbx] ) nip drop ;
 : c@ ( a -- ch ) rex.W $0f c, $b6 c, $1b c, ( movzbq [%rbx],%rbx )
-: c! ( ch a -- ) $8a c, $4d c, $00 c, ( mov 0x0[%rbp],%cl )
+: c! ( ch a -- ) $8a c, $4d c, offset@ c, ( mov o+0x0[%rbp],%cl )
                  $88 c, $0b c, ( mov %cl,[%rbx] ) ;
 
 : syscall ( n n n n n n - n )
+   balance
    rex.W $89 c, $d8 c, ( mov %rbx,%rax )
    $4c c, $8b c, $4d c, $00 c, ( mov 0x0[%rbp],%r9 )
    $4c c, $8b c, $45 c, $F8 c, ( mov -0x8[%rbp],%r8 )
@@ -128,8 +139,8 @@ $100000 ,8 ( p_memsz )
 
 ( START )
 init
-1 aliteral $400000 aliteral 100 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall
-42 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 60 aliteral syscall
+1 aliteral $400000 aliteral 100 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall drop
+42 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 60 aliteral syscall drop
 
 end-image
 bye
