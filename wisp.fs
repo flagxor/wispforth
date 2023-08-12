@@ -5,6 +5,8 @@
 : ,8 ( n -- ) dup ,4 32 rshift ,4 ;
 : 0,   0 c, ;
 
+$400000 $40 + $38 + constant entry-addr
+
 variable image
 variable fh
 
@@ -15,7 +17,6 @@ variable fh
   fh @ close-file throw
   s" chmod a+x out/wisp" system
 ;
-: o+ ( n n -- n ) + ;
 
 : rex.W   $48 c, ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
@@ -116,7 +117,7 @@ $7f c, char E c, char L c, char F c,
 2 ,2 ( e_type = ET_EXEC )
 62 ,2 ( e_machine = EM_X86_64 )
 1 ,4 ( e_version = EV_CURRENT )
-$400000 $40 $38 o+ o+ ,8 ( e_entry = offset to entry below )
+entry-addr ,8 ( e_entry = offset to entry below )
 $40 ,8 ( e_phoff = offset to program header below )
 0 ,8 ( e_shoff, no section header )
 0 ,4 ( e_flags )
