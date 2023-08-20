@@ -20,6 +20,8 @@ variable fh
 
 : rex.W   $48 c, ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
+: rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%esp ) ;
+
 variable offset
 : rbp+= ( n -- ) dup negate offset +!
                  rex.W $83 c, $c5 c, c, ( add $n,%rbp ) ;
@@ -31,7 +33,7 @@ variable offset
             offset@ 0> if offset@ rbp+= then ;
 : ++rbp   8 offset +! offset@ 120 >= if balance then ;
 : --rbp   -8 offset +! offset@ -120 <= if balance then ;
-: rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%esp ) ;
+
 : drop0   $31 c, $db c, ( xor %ebx,%ebx ) ;
 : cmp0   rex.W $83 c, $fb c, $00 c, ( cmp $0x0,%rbx ) ;
 : past>tos   rex.W $8b c, $5d c, $08 c, ( mov 0x8[%rbp],%rbx ) ;
@@ -61,22 +63,28 @@ variable offset
 
 : 1+ ( n -- n ) rex.W $ff c, $c3 c, ( inc %rbx ) ;
 : 1- ( n -- n ) rex.W $ff c, $cb c, ( dec %rbx ) ;
-: rdrop ( a b -- b ) rex.W $83 c, $ec c, $08 c, ( sub $0x8,%rsp ) ;
+
 : drop ( n -- ) rex.W $8b c, $5d c, offset@ c, ( mov o+0x0[%rbp],%rbx ) nip ;
 : dup ( n -- n n ) dup' ;
 : over ( n -- n n ) ++rbp rex.W $89 c, $5d c, offset@- c, ( mov %rbx,-0x8[%rbp] ) ;
+
+: rdrop ( a b -- b ) rex.W $83 c, $ec c, $08 c, ( sub $0x8,%rsp ) ;
 : push ( n -- r: n ) ++rsp rex.W $89 c, $1c c, $24 c, ( mov %rbx,[%rsp] ) drop ;
 : pop ( r: n -- n ) dup rex.W $8b c, $1c c, $24 c, ( mov [%rsp],%rbx ) rdrop ;
+
 : + ( n n -- n ) rex.W $03 c, $5d c, offset@ c, ( add o+0x0[%rbp],%rbx ) nip ;
 : - ( n n -- n ) rex.W $2b c, $5d c, offset@ c, ( sub o+0x0[%rbp],%rbx ) nip ;
 : * ( n n -- n ) rex.W $0f c, $af c, $5d c, offset@ c, ( imul o+0x0[%rbp],%rbx ) nip ;
+
 : and ( n n -- n ) rex.W $23 c, $5d c, offset@ c, ( and o+0x0[%rbp],%rbx ) nip ;
 : or ( n n -- n ) rex.W $0b c, $5d c, offset@ c, ( or o+0x0[%rbp],%rbx ) nip ;
 : xor ( n n -- n ) rex.W $33 c, $5d c, offset@ c, ( xor o+0x0[%rbp],%rbx ) nip ;
 : invert ( n -- n ) rex.W $f7 c, $d3 c, ( not %rbx ) ;
 : negate ( n -- n ) rex.W $f7 c, $db c, ( neg %rbx ) ;
+
 : 0= ( n -- n ) cmp0 drop0 $0f c, $9c c, $c3 c, ( setl %bl ) negate ;
 : 0< ( n -- n ) cmp0 drop0 $0f c, $94 c, $c3 c, ( sete %bl ) negate ;
+
 : exit    balance $c3 c, ;
 : nop    $90 c, ;
 
