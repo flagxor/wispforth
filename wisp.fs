@@ -148,7 +148,7 @@ $100000 ,8 ( p_memsz )
 
 ( START )
 init
-1 aliteral $400000 aliteral 100 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall drop
+1 aliteral $400001 aliteral 3 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall drop
 42 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 60 aliteral syscall drop
 
 end-image
