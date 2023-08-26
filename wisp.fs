@@ -20,7 +20,7 @@ variable fh
 
 : rex.W   $48 c, ;
 : ++rsp   rex.W $83 c, $c4 c, $08 c, ( add $0x8,%rsp ) ;
-: rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%esp ) ;
+: rsp+! ( n -- ) rex.W $81 c, $c4 c, ,4 ( add $n32,%rsp ) ;
 
 variable offset
 : rbp+= ( n -- ) dup negate offset +!
@@ -109,7 +109,7 @@ variable offset
    rex.W $89 c, $c3 c, ( mov %rax,%rbx )
 ;
 
-: init    rex.W $89 c, $e5 c, ( mov %esp,%ebp ) $1000 rsp+! ;
+: init    rex.W $89 c, $e5 c, ( mov %rsp,%rbp ) $1000 rsp+! ;
 
 start-image
 
