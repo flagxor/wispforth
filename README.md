@@ -1,4 +1,4 @@
-* Trying to Meta-compile
+# Trying to Meta-compile
 
 An attempt to meta-compile to x86-64.
 
