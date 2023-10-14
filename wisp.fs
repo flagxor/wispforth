@@ -126,41 +126,47 @@ variable offset
 
 : init    rex.W $89 c, $e5 c, ( mov %rsp,%rbp ) $1000 rsp+! ;
 
+: elf-magic
+  $7f c, [char] E c, [char] L c, [char] F c,
+  2 c, ( ELFCLASS64)
+  1 c, ( ELFDATA2LSB )
+  1 c, ( EV_CURRENT )
+  3 c, ( ELFOSABI_LINUX )
+  0, ( ABI version )
+  0, 0, 0, 0, 0, 0, 0, ( EI_PAD )
+;
+
+: elf-header
+  elf-magic
+  2 ,2 ( e_type = ET_EXEC )
+  62 ,2 ( e_machine = EM_X86_64 )
+  1 ,4 ( e_version = EV_CURRENT )
+  entry-addr ,8 ( e_entry = offset to entry below )
+  $40 ,8 ( e_phoff = offset to program header below )
+  0 ,8 ( e_shoff, no section header )
+  0 ,4 ( e_flags )
+  $40 ,2 ( e_ehdrsize = size of main header )
+  $38 ,2 ( e_phentsize = header size below )
+  1 ,2 ( e_phnum = 1 entry below )
+  0 ,2 ( e_shentsize )
+  0 ,2 ( e_shnum )
+  0 ,2 ( e_shstrndx )
+;
+
+: program-header
+  1 ,4 ( p_type = PT_LOAD )
+  7 ,4 ( p_flags = PF_X | PF_W | PF_R )
+  0 ,8 ( p_offset )
+  $400000 ,8 ( p_vaddr )
+  $400000 ,8 ( p_paddr )
+  $100000 ,8 ( p_filesz )
+  $100000 ,8 ( p_memsz )
+  0 ,8 ( p_align )
+;
+
 start-image
-
-( ELF HEADER )
-$7f c, char E c, char L c, char F c,
-2 c, ( ELFCLASS64)
-1 c, ( ELFDATA2LSB )
-1 c, ( EV_CURRENT )
-3 c, ( ELFOSABI_LINUX )
-0, ( ABI version )
-0, 0, 0, 0, 0, 0, 0, ( EI_PAD )
-
-2 ,2 ( e_type = ET_EXEC )
-62 ,2 ( e_machine = EM_X86_64 )
-1 ,4 ( e_version = EV_CURRENT )
-entry-addr ,8 ( e_entry = offset to entry below )
-$40 ,8 ( e_phoff = offset to program header below )
-0 ,8 ( e_shoff, no section header )
-0 ,4 ( e_flags )
-$40 ,2 ( e_ehdrsize = size of main header )
-$38 ,2 ( e_phentsize = header size below )
-1 ,2 ( e_phnum = 1 entry below )
-0 ,2 ( e_shentsize )
-0 ,2 ( e_shnum )
-0 ,2 ( e_shstrndx )
-
-( PROGRAM HEADER )
-1 ,4 ( p_type = PT_LOAD )
-7 ,4 ( p_flags = PF_X | PF_W | PF_R )
-0 ,8 ( p_offset )
-$400000 ,8 ( p_vaddr )
-$400000 ,8 ( p_paddr )
-$100000 ,8 ( p_filesz )
-$100000 ,8 ( p_memsz )
-0 ,8 ( p_align )
-
+elf-header
+program-header
 ( START )
 init
 1 aliteral $400001 aliteral 3 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall drop
