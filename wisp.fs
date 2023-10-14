@@ -18,6 +18,70 @@ variable fh
   s" chmod a+x out/wisp" system
 ;
 
+: hash ( a n -- n )
+  71 >r
+  begin dup while
+    swap dup c@ >r 1+ swap 1- r> r> 31 * + >r
+  repeat
+  2drop r>
+;
+
+: >number ( a n -- n )
+  0 >r
+  begin dup while
+    swap dup c@ [char] 0 - r> base @ * + >r
+    1+ swap 1-
+  repeat
+  2drop r>
+;
+
+: find ( a n dct -- xt )
+  >r hash r>
+  begin dup @ while
+    2dup @ = if cell+ @ nip exit then
+    2 cells -
+  repeat
+;
+
+variable current
+: +word ( nm adr -- )
+  2 cells current @ +!
+  current @ @ cell+ !
+  current @ @ !
+;
+
+variable regular
+variable macros
+
+create dict
+here regular !
+0 , 0 ,
+100 cells allot
+here macros !
+0 , 0 ,
+100 cells allot
+regular current !
+
+: header   bl parse hash here +word ;
+
+: ~]
+  begin
+    bl parse 2dup
+    macros @ find if
+      >r 2drop r> execute
+    else
+      regular @ find if
+        >r 2drop r> $e8 here 1+ - ,4
+      else
+        >number
+      then
+    then
+  again
+;
+
+: ~:   header ] ;
+
+
 : postpone ;  ( do nothing in host )
 
 : rex.W   $48 c, ;
@@ -171,6 +235,5 @@ program-header
 init
 1 aliteral $400001 aliteral 3 aliteral 0 aliteral 0 aliteral 0 aliteral 1 aliteral syscall drop
 42 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 0 aliteral 60 aliteral syscall drop
-
 end-image
 bye
