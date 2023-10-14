@@ -43,15 +43,14 @@ variable fh
   repeat
 ;
 
+variable regular
+variable macros
 variable current
 : +word ( nm adr -- )
   2 cells current @ +!
   current @ @ cell+ !
   current @ @ !
 ;
-
-variable regular
-variable macros
 
 create dict
 here regular !
